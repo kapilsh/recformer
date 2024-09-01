@@ -198,8 +198,8 @@ class MovieLensSequenceDataset(Dataset):
                 ratings.ravel().unfold(0, sequence_length, window_size).to(torch.int8)
             )
 
-            movie_output_tokens = movie_input_sequences[1:, -1]
-            rating_output_values = rating_input_sequences[1:, -1]
+            movie_output_tokens = movie_input_sequences.detach().clone()[1:, -1]
+            rating_output_values = rating_input_sequences.detach().clone()[1:, -1]
 
             movie_input_sequences = movie_input_sequences[:-1, :]
             rating_input_sequences = rating_input_sequences[:-1, :]
