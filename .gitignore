@@ -162,3 +162,4 @@ cython_debug/
 #.idea/
 
 movielens-ntp/data/ref_post_medium.pdf
+/movielens-ntp/models/
