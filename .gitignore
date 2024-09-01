@@ -165,3 +165,4 @@ movielens-ntp/data/ref_post_medium.pdf
 /movielens-ntp/models/
 /movielens-ntp/runs/
 .idea
+movielens-ntp/data/posters
