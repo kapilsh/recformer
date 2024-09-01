@@ -163,3 +163,5 @@ cython_debug/
 
 movielens-ntp/data/ref_post_medium.pdf
 /movielens-ntp/models/
+/movielens-ntp/runs/
+.idea
