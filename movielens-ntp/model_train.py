@@ -11,6 +11,7 @@ from loguru import logger
 import numpy as np
 from tqdm import trange
 from torch.utils.tensorboard import SummaryWriter
+from loss import DedupCrossEntropyLoss
 
 
 def load_config(config_file: str):
@@ -46,7 +47,9 @@ def train_step(
     )
     optimizer.zero_grad()
     output = model(movie_ids, user_ids)
-    loss = criterion(output.view(-1, output.size(-1)), movie_targets.view(-1).long())
+    loss = criterion(
+        output.view(-1, output.size(-1)), movie_targets.view(-1).long(), movie_ids
+    )
     loss.backward()
     # torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
     optimizer.step()
@@ -69,7 +72,7 @@ def validation_step(
     with torch.no_grad():
         output = model(movie_ids, user_ids)
         loss = criterion(
-            output.view(-1, output.size(-1)), movie_targets.view(-1).long()
+            output.view(-1, output.size(-1)), movie_targets.view(-1).long(), movie_ids
         )
     return loss.item()
 
@@ -99,7 +102,7 @@ def get_model_config(config: dict, dataset: Dataset) -> MovieLensTransformerConf
     return model_config
 
 
-def run_model_training(config: dict):
+def run_model_training(config: dict, penalize_duplicates: bool = False):
     device = config["trainer_config"]["device"]
     if device == "cuda" and not torch.cuda.is_available():
         raise ValueError("CUDA is not available")
@@ -119,7 +122,14 @@ def run_model_training(config: dict):
     init_weights(model)
     model.to(device)
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = DedupCrossEntropyLoss(
+        penalty_weight=(
+            config["trainer_config"]["penalize_duplicates_factor"]
+            if penalize_duplicates
+            else 0
+        )
+    )
+
     optimizer = torch.optim.Adam(
         model.parameters(), lr=config["trainer_config"]["starting_learning_rate"]
     )
@@ -209,9 +219,14 @@ def run_model_training(config: dict):
 
 @click.command()
 @click.option("--config_file", help="config filename")
-def main(config_file):
+@click.option(
+    "--penalize-duplicates",
+    is_flag=True,
+    help="penalize duplicates in the output token",
+)
+def main(config_file: str, penalize_duplicates: bool):
     config = load_config(config_file)
-    run_model_training(config)
+    run_model_training(config, penalize_duplicates)
 
 
 if __name__ == "__main__":
