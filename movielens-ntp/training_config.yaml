@@ -1,14 +1,14 @@
 trainer_config:
   data_dir: ./data/ml-1m
   model_dir: ./models
-  batch_size: 512
-  starting_learning_rate: 0.0008
-  learning_rate_decay: 0.95
+  batch_size: 4096
+  starting_learning_rate: 0.0005
+  learning_rate_decay: 0.99
   device: cuda
-  num_epochs: 1000
+  num_epochs: 500
   validation_fraction: 0.15
   tensorboard_dir: ./runs
-  penalize_duplicates_factor: 0.2
+  penalize_duplicates_factor: 0.1
 
 movie_transformer_config:
   context_window_size: 5
