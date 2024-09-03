@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 import click
 from movielens_transformer import MovieLensTransformer, MovieLensTransformerConfig
 from torch.utils.data import DataLoader, Dataset
@@ -103,7 +104,7 @@ def get_model_config(config: dict, dataset: Dataset) -> MovieLensTransformerConf
     return model_config
 
 
-def run_model_training(config: dict, penalize_duplicates: bool = False):
+def run_model_training(config: dict, penalize_duplicates: bool = False, checkpoint: Optional[str] = None):
     torch.set_float32_matmul_precision("high")
 
     device = config["trainer_config"]["device"]
@@ -122,7 +123,11 @@ def run_model_training(config: dict, penalize_duplicates: bool = False):
 
     model = MovieLensTransformer(config=model_config)
 
-    init_weights(model)
+    if not checkpoint:
+        init_weights(model)
+    else:
+        model.load_state_dict(torch.load(checkpoint))
+    
     model.to(device)
 
     criterion = DedupCrossEntropyLoss(
@@ -238,9 +243,10 @@ def run_model_training(config: dict, penalize_duplicates: bool = False):
     is_flag=True,
     help="penalize duplicates in the output token",
 )
-def main(config_file: str, penalize_duplicates: bool):
+@click.option("--checkpoint", help="checkpoint filename", required=False)
+def main(config_file: str, penalize_duplicates: bool, checkpoint: Optional[str] = None):
     config = load_config(config_file)
-    run_model_training(config, penalize_duplicates)
+    run_model_training(config, penalize_duplicates, checkpoint)
 
 
 if __name__ == "__main__":
