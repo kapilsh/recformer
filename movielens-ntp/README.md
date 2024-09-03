@@ -6,3 +6,4 @@
 - [BST for Recommender Systems](https://arxiv.org/pdf/1905.06874)
 - [BERT4Rec](https://towardsdatascience.com/build-your-own-movie-recommender-system-using-bert4rec-92e4e34938c5)
 - [Metrics](https://www.evidentlyai.com/ranking-metrics/evaluating-recommender-systems#ranking-quality-with-evidently)
+- [Llama3 on RasPi](https://dev-discuss.pytorch.org/t/run-llama3-8b-on-a-raspberry-pi-5-with-executorch/2048)
