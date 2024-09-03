@@ -12,6 +12,7 @@ import numpy as np
 from tqdm import trange
 from torch.utils.tensorboard import SummaryWriter
 from loss import DedupCrossEntropyLoss
+from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau, CosineAnnealingLR
 
 
 def load_config(config_file: str):
@@ -103,6 +104,8 @@ def get_model_config(config: dict, dataset: Dataset) -> MovieLensTransformerConf
 
 
 def run_model_training(config: dict, penalize_duplicates: bool = False):
+    torch.set_float32_matmul_precision("high")
+
     device = config["trainer_config"]["device"]
     if device == "cuda" and not torch.cuda.is_available():
         raise ValueError("CUDA is not available")
@@ -134,11 +137,18 @@ def run_model_training(config: dict, penalize_duplicates: bool = False):
         model.parameters(), lr=config["trainer_config"]["starting_learning_rate"]
     )
 
+    scheduler = CosineAnnealingLR(
+        optimizer=optimizer,
+        T_max=100,
+        eta_min=0.000001,
+    )
     best_validation_loss = np.inf
 
     writer = SummaryWriter(
         log_dir=config["trainer_config"]["tensorboard_dir"], flush_secs=30
     )
+
+    compiled_model = torch.compile(model, fullgraph=True, mode="max-autotune")
 
     for epoch in range(config["trainer_config"]["num_epochs"]):
         model.train()
@@ -157,7 +167,7 @@ def run_model_training(config: dict, penalize_duplicates: bool = False):
                 movie_ids,
                 user_ids,
                 movie_targets,
-                model,
+                compiled_model,
                 optimizer,
                 criterion,
                 device,
@@ -190,7 +200,7 @@ def run_model_training(config: dict, penalize_duplicates: bool = False):
                 movie_ids,
                 user_ids,
                 movie_targets,
-                model,
+                compiled_model,
                 criterion,
                 device,
             )
@@ -212,9 +222,13 @@ def run_model_training(config: dict, penalize_duplicates: bool = False):
             if not os.path.exists(config["trainer_config"]["model_dir"]):
                 os.makedirs(config["trainer_config"]["model_dir"])
             torch.save(
-                model.state_dict(),
+                compiled_model.state_dict(),
                 os.path.join(config["trainer_config"]["model_dir"], "model.pth"),
             )
+
+        # update the learning rate
+        scheduler.step()
+        logger.info(f"Learning rate: {scheduler.get_last_lr()[0]}")
 
 
 @click.command()
